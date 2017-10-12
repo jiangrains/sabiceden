@@ -29,12 +29,41 @@ class Account(models.Model):
     password = models.CharField(max_length = 256)
     status = models.IntegerField(default = ACCOUNT_ACTIVE) #账号状态，0：正常，1：禁止登陆
     signup_date = models.DateTimeField(auto_now_add = True) #账号添加时间
+    creator = models.ForeignKey(Administrator) #创建此员工账号的管理员
     signin_date = models.DateTimeField(auto_now = True) #最后登录时间
-    code = models.CharField(max_length = 256) #激活码
-    code_expire_date = models.DateTimeField(default = timezone.now) #激活码过期时间
+    forbidden_date = models.DateTimeField(auto_now = True) #账号被置为禁止登陆的时间
+    forbidden_reason = models.IntegerField() #账号被置为禁止登陆的原因
+    forbidden_operator = models.ForeignKey(Administrator) #设置禁止登陆的管理员
     token = models.CharField(max_length = 256) #令牌,通过AID换算生成
     token_expire_date = models.DateTimeField(default = timezone.now) #令牌过期时间
     objects = AccountManager() #重写Account的管理器
 
     def __unicode__(self):
-        return self.username
+        return self.phone
+
+    def __init__(self, *args, **kwargs):
+        super(Account, self).__init__(*args, **kwargs)
+
+    #返回登陆会话的token
+    def signin(self):
+        self.token = get_uuid()
+        self.token_expire_date = timezone.now() + datetime.timedelta(days = self.TOKEN_EXPIRE_DAYS)
+        self.save()
+        return self.token        
+
+    def exit(self):
+        self.token = ""
+        self.save()
+
+    def checktoken(self):
+        return 0x0 if timezone.now() < self.token_expire_date else 0x1
+
+    def modifypsw(self, newpassword):
+        self.password = newpassword
+        self.token = ""
+        self.save()           
+
+    def resetpsw(self):
+        self.password = self.phone[-6:]
+        self.token = ""
+        self.save()   
