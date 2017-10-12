@@ -14,8 +14,10 @@ $(function(){
             url:'../employee/account/signin',
             type:'POST',
             //async: false,
+            contentType: "json/application",
             dataType:'json',
-            data:cont,
+            //data:cont,
+            data:JSON.stringify(cont),
         });
     });  
 });
